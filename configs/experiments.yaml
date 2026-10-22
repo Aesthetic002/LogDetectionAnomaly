@@ -1,0 +1,13 @@
+# Offline benchmark experiments (note 07). REDUCED protocol for this run:
+# 3 classical seeds and 3 DeepLog seeds (protocol: 5), 1 seed for E3/E4/E5/E7/E2b.
+# For the full protocol set seeds_* to [0, 1, 2, 3, 4].
+datasets: [hdfs, bgl]
+sim_th: [0.3, 0.4, 0.5, 0.6, 0.7]
+seeds_classical: [0, 1, 2]
+seeds_deeplog: [0, 1, 2]
+h: 10
+h_values: [5, 10, 20]
+fractions: [0.01, 0.1, 0.5, 1.0]
+tau: 0.6
+tau_grid: [0.4, 0.5, 0.6, 0.7, 0.8]
+experiments: [E1, E2, E11, E10, E3, E5, E4, E7, E2b]

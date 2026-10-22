@@ -1,0 +1,15 @@
+data/
+!data/README.md
+.venv/
+*.pt
+artifacts/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+*.egg-info/
+reports/incidents/*.md
+!reports/incidents/.gitkeep
+*.db
+*.db-wal
+*.db-shm

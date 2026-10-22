@@ -1,0 +1,29 @@
+exp_id,dataset,split,model,seed,precision,recall,f1,pr_auc,train_time_s,metric,value,notes
+E1,HDFS-2k,-,Drain3,0,,,,,,ga,0.9975,sim_th=0.3;masking=True;templates=16;true=14;lps=18378
+E1,HDFS-2k,-,Drain3,0,,,,,,ga,0.9975,sim_th=0.4;masking=True;templates=16;true=14;lps=20933
+E1,HDFS-2k,-,Drain3,0,,,,,,ga,0.9975,sim_th=0.5;masking=True;templates=16;true=14;lps=18150
+E1,HDFS-2k,-,Drain3,0,,,,,,ga,0.9975,sim_th=0.6;masking=True;templates=16;true=14;lps=11096
+E1,HDFS-2k,-,Drain3,0,,,,,,ga,0.9975,sim_th=0.7;masking=True;templates=16;true=14;lps=12158
+E1,HDFS-2k,-,Drain3,0,,,,,,ga,0.9975,sim_th=0.3;masking=False;templates=17;true=14;lps=36779
+E1,HDFS-2k,-,Drain3,0,,,,,,ga,0.9975,sim_th=0.4;masking=False;templates=17;true=14;lps=42613
+E1,HDFS-2k,-,Drain3,0,,,,,,ga,0.9975,sim_th=0.5;masking=False;templates=17;true=14;lps=40167
+E1,HDFS-2k,-,Drain3,0,,,,,,ga,0.714,sim_th=0.6;masking=False;templates=406;true=14;lps=8476
+E1,HDFS-2k,-,Drain3,0,,,,,,ga,0.281,sim_th=0.7;masking=False;templates=700;true=14;lps=2909
+E1,BGL-2k,-,Drain3,0,,,,,,ga,0.9225,sim_th=0.3;masking=True;templates=99;true=120;lps=8050
+E1,BGL-2k,-,Drain3,0,,,,,,ga,0.9685,sim_th=0.4;masking=True;templates=105;true=120;lps=15263
+E1,BGL-2k,-,Drain3,0,,,,,,ga,0.9685,sim_th=0.5;masking=True;templates=105;true=120;lps=18213
+E1,BGL-2k,-,Drain3,0,,,,,,ga,0.876,sim_th=0.6;masking=True;templates=111;true=120;lps=20847
+E1,BGL-2k,-,Drain3,0,,,,,,ga,0.8805,sim_th=0.7;masking=True;templates=115;true=120;lps=16562
+E1,BGL-2k,-,Drain3,0,,,,,,ga,0.931,sim_th=0.3;masking=False;templates=100;true=120;lps=44241
+E1,BGL-2k,-,Drain3,0,,,,,,ga,0.9685,sim_th=0.4;masking=False;templates=105;true=120;lps=31420
+E1,BGL-2k,-,Drain3,0,,,,,,ga,0.965,sim_th=0.5;masking=False;templates=107;true=120;lps=40193
+E1,BGL-2k,-,Drain3,0,,,,,,ga,0.4625,sim_th=0.6;masking=False;templates=903;true=120;lps=2433
+E1,BGL-2k,-,Drain3,0,,,,,,ga,0.4625,sim_th=0.7;masking=False;templates=918;true=120;lps=2531
+E1,hdfs,-,Drain3,0,,,,,,throughput_lines_per_s,33913.0,"full dataset, masked-string cache; includes file read + masking"
+E1,hdfs,-,Drain3,0,,,,,,templates_full,46.0,
+E1,hdfs,-,Drain3,0,,,,,,templates_novel_test,0.0,templates first mined in the chronological test period (honest parse)
+E1,hdfs,-,Drain3,0,,,,,,compression_lines_per_template,242948.45652173914,
+E1,bgl,-,Drain3,0,,,,,,throughput_lines_per_s,48984.0,"full dataset, masked-string cache; includes file read + masking"
+E1,bgl,-,Drain3,0,,,,,,templates_full,385.0,
+E1,bgl,-,Drain3,0,,,,,,templates_novel_test,106.0,templates first mined in the chronological test period (honest parse)
+E1,bgl,-,Drain3,0,,,,,,compression_lines_per_template,12332.371428571429,

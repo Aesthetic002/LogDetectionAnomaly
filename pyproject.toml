@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "logpulse"
+version = "1.0.0"
+description = "Log anomaly detection for microservices: Drain3 + classical ML + DeepLog with semantic template matching, top-p and step-wise scoring"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

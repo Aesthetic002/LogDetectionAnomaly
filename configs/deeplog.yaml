@@ -1,0 +1,11 @@
+# DeepLog defaults (Du et al. 2017) used by benchmarks and the demo model.
+h: 10            # window of previous events
+g: 9             # top-g (vanilla); tuned on validation per dataset
+p_grid: [0.8, 0.9, 0.95, 0.99, 0.995, 0.999, 0.9999]
+emb: 32
+hidden: 64
+layers: 2
+lr: 0.001
+batch_size: 256
+max_epochs: 30
+patience: 3      # early stopping on a normal-only validation slice

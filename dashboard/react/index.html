@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LogPulse Flow</title>
+<link rel="stylesheet" href="https://unpkg.com/reactflow@11.11.4/dist/style.css">
+<style>
+  :root {
+    --surface: #fcfcfb; --page: #f9f9f7; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --edge: #86b6ef;
+    --good: #0ca30c; --warn: #fab219; --crit: #d03b3b;
+    --gateway: #2a78d6; --orders: #eb6834; --inventory: #1baf7a; --payment: #eda100; --infra: #898781;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --surface: #1a1a19; --page: #0d0d0d; --ink: #f0efec; --ink2: #c3c2b7; --grid: #2c2c2a; --axis: #383835;
+      --edge: #3987e5; --gateway: #3987e5; --orders: #d95926; --inventory: #199e70; --payment: #c98500;
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface: #1a1a19; --page: #0d0d0d; --ink: #f0efec; --ink2: #c3c2b7; --grid: #2c2c2a; --axis: #383835;
+    --edge: #3987e5; --gateway: #3987e5; --orders: #d95926; --inventory: #199e70; --payment: #c98500;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 14px system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { display: flex; gap: 16px; align-items: baseline; padding: 12px 16px; flex-wrap: wrap; }
+  header h1 { font-size: 18px; margin: 0; }
+  header nav button { margin-right: 6px; padding: 4px 10px; border: 1px solid var(--axis); border-radius: 6px;
+    background: var(--surface); color: var(--ink); cursor: pointer; }
+  header nav button.on { border-color: var(--gateway); color: var(--gateway); font-weight: 600; }
+  .panel { margin: 0 16px 16px; background: var(--surface); border: 1px solid var(--grid); border-radius: 10px; }
+  .flow { height: 62vh; }
+  .note { color: var(--ink2); font-size: 12px; padding: 8px 12px; }
+  .svc { padding: 10px 14px; border-radius: 10px; border: 3px solid var(--good); background: var(--surface);
+    color: var(--ink); min-width: 130px; text-align: center; }
+  .svc b { display: block; font-size: 15px; }
+  .svc small { color: var(--ink2); }
+  .tpl { padding: 4px 8px; border-radius: 6px; font: 11px ui-monospace, monospace; max-width: 190px;
+    border: 1px solid var(--axis); background: var(--surface); color: var(--ink); }
+  .lanes { padding: 8px 12px; font: 12px ui-monospace, monospace; overflow-x: auto; }
+  .chip { display: inline-block; padding: 1px 5px; margin: 1px; border-radius: 4px; }
+  .bad { outline: 2px solid var(--crit); }
+  input { padding: 4px 8px; border: 1px solid var(--axis); border-radius: 6px; background: var(--surface); color: var(--ink); width: 160px; }
+  @media (max-width: 640px) { .flow { height: 70vh; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/reactflow@11.11.4/dist/umd/index.js"></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+<script>
+const { useState, useEffect, useMemo } = React;
+const RF = window.ReactFlow;
+const html = htm.bind(React.createElement);
+const STATUS = { green: "var(--good)", amber: "var(--warn)", red: "var(--crit)", grey: "var(--infra)" };
+const STATUS_TXT = { green: "● healthy", amber: "▲ suspicious", red: "■ alerting", grey: "infra" };
+const POS = { gateway: [0, 160], orders: [260, 160], inventory: [520, 40], payment: [520, 280], db: [780, 40], "fluent-bit": [130, 360] };
+const svcColor = s => `var(--${["gateway", "orders", "inventory", "payment"].includes(s) ? s : "infra"})`;
+const get = async (p) => (await fetch(p)).json();
+
+function Topology() {
+  const [data, setData] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    const tick = async () => { try { const d = await get("/api/services"); if (alive) setData(d); } catch (e) {} };
+    tick(); const id = setInterval(tick, 1000);
+    return () => { alive = false; clearInterval(id); };
+  }, []);
+  const nodes = (data?.nodes || []).map(n => ({
+    id: n.id, position: { x: POS[n.id][0], y: POS[n.id][1] }, draggable: true,
+    data: { label: html`<div class="svc" style=${{ borderColor: STATUS[n.color] }} title=${`health: ${n.health}`}>
+      <b>${n.id}</b><small>${n.lines_per_s} lines/s${n.infra ? "" : ` · ${n.anomalous_per_min} anom/min`}</small><br/>
+      <small style=${{ color: STATUS[n.color] }}>${STATUS_TXT[n.color]}</small></div>` },
+    style: { padding: 0, border: "none", background: "transparent", width: "auto" },
+  }));
+  const edges = (data?.edges || []).map(e => ({
+    id: `${e.source}-${e.target}`, source: e.source, target: e.target, animated: (e.req_per_s ?? 1) > 0,
+    label: e.req_per_s == null ? "" : `${e.req_per_s} req/s`,
+    style: { stroke: e.anomalous ? "var(--crit)" : "var(--edge)", strokeWidth: 1.5 + Math.min((e.req_per_s || 0) / 3, 7) },
+  }));
+  return html`<div class="panel"><div class="flow">
+      <${RF.default} nodes=${nodes} edges=${edges} fitView=${true} proOptions=${{ hideAttribution: true }}>
+        <${RF.Background} gap=${24} color="var(--grid)" /><${RF.Controls} />
+      </${RF.default}></div>
+    <div class="note">Live topology (Panel 1). Node border = health from the step-wise model's alerts in the last 30 s
+      and the B3 health probe; edge width = requests/s; red edge = anomalous traces passing through. Refreshes every second.</div></div>`;
+}
+
+function FlowGraph() {
+  const [tr, setTr] = useState(null);
+  const [trace, setTrace] = useState("");
+  const [path, setPath] = useState([]);
+  const [minP, setMinP] = useState(0.01);
+  useEffect(() => { get("/api/transitions").then(setTr); }, []);
+  const load = async () => {
+    if (!trace) return setPath([]);
+    const t = await get(`/api/traces/${trace}`);
+    setPath((t.events || []).map(e => String(e.event_id)));
+  };
+  const { nodes, edges } = useMemo(() => {
+    if (!tr || !tr.nodes.length) return { nodes: [], edges: [] };
+    const kept = tr.edges.filter(e => e.prob >= minP);
+    const depth = { START: 0 };
+    for (let k = 0; k < 40; k++) for (const e of kept) {
+      const s = String(e.source), d = String(e.target);
+      if (s in depth && !(d in depth)) depth[d] = depth[s] + 1;
+    }
+    const ids = ["START", ...tr.nodes.map(n => String(n.id)), "END"];
+    const maxD = Math.max(...Object.values(depth));
+    ids.forEach(i => { if (!(i in depth)) depth[i] = maxD + 1; });
+    const layer = {};
+    const meta = Object.fromEntries(tr.nodes.map(n => [String(n.id), n]));
+    const nodes = ids.map(i => {
+      const L = depth[i]; layer[L] = (layer[L] || 0) + 1;
+      const m = meta[i];
+      const onPath = path.includes(i);
+      return { id: i, position: { x: L * 230, y: layer[L] * 70 },
+        data: { label: html`<div class="tpl" title=${m ? m.template : i}
+          style=${{ borderColor: m ? svcColor(m.services[0]) : "var(--axis)", borderWidth: onPath ? 3 : 1 }}>
+          ${m ? `E${i} · ${m.template.slice(0, 38)}` : i}</div>` },
+        style: { padding: 0, border: "none", background: "transparent", width: "auto" } };
+    });
+    const known = new Set(tr.edges.map(e => `${e.source}>${e.target}`));
+    const edges = kept.map(e => ({ id: `${e.source}>${e.target}`, source: String(e.source), target: String(e.target),
+      label: e.prob >= 0.05 ? `${Math.round(e.prob * 100)}%` : "",
+      style: { stroke: "var(--edge)", strokeWidth: 0.5 + 6 * e.prob, opacity: path.length ? 0.35 : 1 } }));
+    const steps = ["START", ...path, "END"];
+    for (let i = 0; i + 1 < steps.length; i++) {
+      const ok = known.has(`${steps[i]}>${steps[i + 1]}`);
+      edges.push({ id: `path${i}`, source: steps[i], target: steps[i + 1], animated: !ok,
+        style: { stroke: ok ? "var(--ink)" : "var(--crit)", strokeWidth: 3, strokeDasharray: ok ? "" : "6 4" } });
+    }
+    return { nodes, edges };
+  }, [tr, path, minP]);
+  return html`<div class="panel">
+    <div class="note">Overlay a trace:
+      <input value=${trace} onInput=${e => setTrace(e.target.value)} placeholder="trace id" />
+      <button onClick=${load}>show path</button>
+      &nbsp; hide edges below <input type="number" step="0.005" min="0" max="0.5" value=${minP}
+        style=${{ width: "80px" }} onInput=${e => setMinP(parseFloat(e.target.value) || 0)} /></div>
+    <div class="flow">
+      <${RF.default} nodes=${nodes} edges=${edges} fitView=${true} minZoom=${0.1} proOptions=${{ hideAttribution: true }}>
+        <${RF.Background} gap=${24} color="var(--grid)" /><${RF.Controls} /><${RF.MiniMap} pannable=${true} />
+      </${RF.default}></div>
+    <div class="note">Normal flow graph (Panel 5): templates learned from healthy traffic, edge width = transition
+      probability. An overlaid trace draws black on roads that exist and red dashed on roads that don't.</div></div>`;
+}
+
+function Lanes() {
+  const [d, setD] = useState({ traces: [], interleaved: [] });
+  useEffect(() => {
+    const tick = async () => { try { setD(await get("/api/traces?seconds=15&limit=16")); } catch (e) {} };
+    tick(); const id = setInterval(tick, 1500); return () => clearInterval(id);
+  }, []);
+  const chip = (e, s, bad) => html`<span class=${"chip" + (bad ? " bad" : "")}
+    style=${{ background: `color-mix(in srgb, ${svcColor(s)} 22%, transparent)` }}>E${e}</span>`;
+  return html`<div class="panel lanes">
+    <div class="note">Interleaved, as it arrives:</div>
+    <div>${d.interleaved.slice(-50).map(e => chip(e.event_id, e.service, false))}</div>
+    <div class="note">One lane per trace_id (Panel 3):</div>
+    ${d.traces.map(t => html`<div key=${t.trace_id}>${t.anomalous ? "🟥" : "▫️"} ${t.trace_id}
+      ${t.events.map((e, i) => chip(e, t.services[i], t.bad_step === i))}</div>`)}</div>`;
+}
+
+function App() {
+  const [view, setView] = useState("topology");
+  return html`<div>
+    <header><h1>LogPulse</h1>
+      <nav>${["topology", "flow graph", "lanes"].map(v => html`<button class=${view === v ? "on" : ""}
+        onClick=${() => setView(v)}>${v}</button>`)}</nav>
+      <span class="note">Full dashboard: Streamlit on :8501</span></header>
+    ${view === "topology" ? html`<${Topology} />` : view === "lanes" ? html`<${Lanes} />` : html`<${FlowGraph} />`}
+  </div>`;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(html`<${App} />`);
+</script>
+</body>
+</html>

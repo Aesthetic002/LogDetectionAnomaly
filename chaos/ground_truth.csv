@@ -1,0 +1,2 @@
+fault_id,type,target_service,start_ts,end_ts,run_id
+F3-1792630556516,F3_skip_reserve,orders,2026-10-22T00:55:56.516Z,2026-10-22T00:56:06.860Z,smoke

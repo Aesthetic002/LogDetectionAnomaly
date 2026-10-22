@@ -1,0 +1,83 @@
+# LogPulse demo stack (note 06).
+#   docker compose up -d fluent-bit          # start the shipper first
+#   docker compose --profile deploy build    # also builds the payment:v2 "bad deploy" image
+#   docker compose up -d --build
+#   docker compose --profile deploy create payment-v2   # created stopped; F7 starts it
+name: logpulse
+
+x-fluent: &fluent
+  driver: fluentd
+  options:
+    fluentd-address: localhost:24224
+    fluentd-async: "true"
+    tag: "svc.{{.Name}}"
+
+services:
+  gateway:
+    build: { context: ../services, dockerfile: gateway/Dockerfile }
+    image: logpulse-gateway:v1
+    ports: ["8000:8000"]
+    environment: [ORDERS_URL=http://orders:8000]
+    logging: *fluent
+    depends_on: [orders, fluent-bit]
+  orders:
+    build: { context: ../services, dockerfile: orders/Dockerfile }
+    image: logpulse-orders:v1
+    environment: [INVENTORY_URL=http://inventory:8000, PAYMENT_URL=http://payment:8000, FAULT_MODE=none]
+    logging: *fluent
+    depends_on: [inventory, payment, fluent-bit]
+  inventory:
+    build: { context: ../services, dockerfile: inventory/Dockerfile }
+    image: logpulse-inventory:v1
+    environment: [DB_URL=postgresql://app:app@db:5432/shop]
+    logging: *fluent
+    depends_on: [db, fluent-bit]
+  payment:
+    build: { context: ../services, dockerfile: payment/Dockerfile, args: [LOG_VARIANT=v1] }
+    image: logpulse-payment:v1
+    environment: [FAULT_MODE=none]       # flipped at runtime by the fault injector
+    logging: *fluent
+    depends_on: [fluent-bit]
+  payment-v2:                            # F7 "bad deploy": same code, reworded log messages
+    profiles: [deploy]
+    build: { context: ../services, dockerfile: payment/Dockerfile, args: [LOG_VARIANT=v2] }
+    image: logpulse-payment:v2
+    environment: [FAULT_MODE=none, SERVICE_NAME=payment]
+    networks: { default: { aliases: [payment] } }
+    logging: *fluent
+  db:
+    image: postgres:16
+    environment: [POSTGRES_USER=app, POSTGRES_PASSWORD=app, POSTGRES_DB=shop]
+  fluent-bit:
+    image: fluent/fluent-bit:3.1
+    ports: ["24224:24224"]
+    environment:
+      - DETECTOR_HOST=${DETECTOR_HOST:-detector}
+    volumes:
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ../data/demo/fluentbit:/data/raw_logs
+  detector:
+    build: { context: .., dockerfile: deploy/detector.Dockerfile }
+    image: logpulse-detector:v1
+    ports: ["9000:9000"]                 # /ingest + /api/* + /ui (React page)
+    environment:
+      - LOGPULSE_ROOT=/app
+      - LOGPULSE_LIVE_RUNS=/runs
+      - CHAOS_URL=http://chaos:9100
+      - SERVICE_URLS=gateway=http://gateway:8000,orders=http://orders:8000,inventory=http://inventory:8000,payment=http://payment:8000
+    volumes: ["../data:/app/data", "../artifacts:/app/artifacts", "../configs:/app/configs:ro", "runs:/runs"]
+  chaos:
+    build: { context: .., dockerfile: deploy/chaos.Dockerfile }
+    image: logpulse-chaos:v1
+    ports: ["9100:9100"]
+    environment: [LOGPULSE_ROOT=/app, DETECTOR_URL=http://detector:9000, COMPOSE_PROJECT=logpulse]
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock", "../chaos:/app/chaos", "../data:/app/data"]
+  dashboard:
+    build: { context: .., dockerfile: deploy/dashboard.Dockerfile }
+    image: logpulse-dashboard:v1
+    ports: ["8501:8501"]
+    environment: [API_URL=http://detector:9000, CHAOS_URL=http://chaos:9100, LOGPULSE_ROOT=/app]
+    volumes: ["../reports:/app/reports:ro", "../data:/app/data:ro"]
+
+volumes:
+  runs:

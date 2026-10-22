@@ -1,0 +1,21 @@
+==== E1
+==== E1 done in 8s
+==== E2
+[E2] hdfs: 575,061 sessions, V=48, train/val/test = [414044, 46004, 115013]
+Matplotlib is building the font cache; this may take a moment.
+findfont: Failed to find font weight semibold for DejaVu Sans, now using 700.
+findfont: Failed to find font weight semibold for DejaVu Sans, now using 700.
+[E2] hdfs DeepLog seed 0
+    epoch 0: train 0.5667  val 0.1720  (33,621 unique pairs)
+    epoch 1: train 0.2902  val 0.1767  (33,621 unique pairs)
+    epoch 2: train 0.2666  val 0.1681  (33,621 unique pairs)
+    epoch 3: train 0.2595  val 0.1653  (33,621 unique pairs)
+    epoch 4: train 0.2555  val 0.1714  (33,621 unique pairs)
+    epoch 5: train 0.2529  val 0.1663  (33,621 unique pairs)
+    epoch 6: train 0.2523  val 0.1675  (33,621 unique pairs)
+[E2] hdfs DeepLog seed 1
+    epoch 0: train 0.5734  val 0.1772  (33,621 unique pairs)
+    epoch 1: train 0.2930  val 0.1786  (33,621 unique pairs)
+    epoch 2: train 0.2690  val 0.1691  (33,621 unique pairs)
+    epoch 3: train 0.2601  val 0.1682  (33,621 unique pairs)
+    epoch 4: train 0.2545  val 0.1655  (33,621 unique pairs)
