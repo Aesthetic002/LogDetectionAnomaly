@@ -16,7 +16,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 def clean(t: str) -> str:
     """Drop wildcards and masks, lowercase."""
-    return re.sub(r"<[^>]*>", " ", t).lower()
+    return re.sub(r"<[^>]*>", " ", str(t) if t == t else "").lower()
 
 
 class TemplateMatcher:

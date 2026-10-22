@@ -27,6 +27,7 @@ from schedule import execute, plan  # noqa: E402
 DET = "http://localhost:9000"
 CHAOS = "http://localhost:9100"
 RUNS = ROOT / "data" / "demo" / "runs"
+SKIP: set = set()
 
 
 def log(msg):
@@ -49,10 +50,26 @@ def sample_stats(path: Path, stop: threading.Event):
             stop.wait(15)
 
 
+def wait_ready(timeout=120):
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        try:
+            if httpx.get(f"{DET}/api/status", timeout=3).status_code == 200 and                     httpx.get(f"{CHAOS}/faults", timeout=3).status_code == 200:
+                return
+        except httpx.HTTPError:
+            pass
+        time.sleep(2)
+    raise RuntimeError("detector / chaos API not ready")
+
+
 def run(name: str, seed: int, minutes_load: float, schedule=None, deploy=False, warmup=120, mode="detect", rate=20):
+    if name in SKIP:
+        log(f"=== skip {name}")
+        return
     log(f"=== run {name} (seed {seed}, mode {mode})")
+    wait_ready()
     httpx.post(f"{CHAOS}/restore", timeout=60)
-    httpx.post(f"{DET}/api/admin/reset", json={"run": name, "mode": mode}, timeout=30).raise_for_status()
+    httpx.post(f"{DET}/api/admin/reset", json={"run": name, "mode": mode}, timeout=900).raise_for_status()
     stop = threading.Event()
     th = threading.Thread(target=sample_stats, args=(RUNS / f"{name}_stats.csv", stop), daemon=True)
     th.start()
@@ -69,7 +86,7 @@ def run(name: str, seed: int, minutes_load: float, schedule=None, deploy=False, 
     time.sleep(8)  # let the reorder buffer and idle timeouts drain
     httpx.post(f"{CHAOS}/restore", timeout=60)
     stop.set()
-    r = httpx.post(f"{DET}/api/admin/export", timeout=120).json()
+    r = httpx.post(f"{DET}/api/admin/export", timeout=900).json()
     log(f"=== {name} done -> {r['exported_to']}")
 
 
@@ -93,7 +110,9 @@ def main():
     ap.add_argument("--deploy-faults", nargs="+", default=["F1", "F3", "F4"])
     ap.add_argument("--fault-free-min", type=float, default=20)
     ap.add_argument("--rate", type=float, default=20)
+    ap.add_argument("--skip", nargs="*", default=[], help="run names already recorded")
     a = ap.parse_args()
+    SKIP.update(a.skip)
 
     if a.phase == "normal":
         run("normal", 7, a.minutes, mode="collect", warmup=0, rate=a.rate)

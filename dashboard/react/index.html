@@ -71,6 +71,7 @@ function Topology() {
   }, []);
   const nodes = (data?.nodes || []).map(n => ({
     id: n.id, position: { x: POS[n.id][0], y: POS[n.id][1] }, draggable: true,
+    sourcePosition: "right", targetPosition: "left",
     data: { label: html`<div class="svc" style=${{ borderColor: STATUS[n.color] }} title=${`health: ${n.health}`}>
       <b>${n.id}</b><small>${n.lines_per_s} lines/s${n.infra ? "" : ` · ${n.anomalous_per_min} anom/min`}</small><br/>
       <small style=${{ color: STATUS[n.color] }}>${STATUS_TXT[n.color]}</small></div>` },
@@ -117,7 +118,7 @@ function FlowGraph() {
       const L = depth[i]; layer[L] = (layer[L] || 0) + 1;
       const m = meta[i];
       const onPath = path.includes(i);
-      return { id: i, position: { x: L * 230, y: layer[L] * 70 },
+      return { id: i, position: { x: L * 230, y: layer[L] * 70 }, sourcePosition: "right", targetPosition: "left",
         data: { label: html`<div class="tpl" title=${m ? m.template : i}
           style=${{ borderColor: m ? svcColor(m.services[0]) : "var(--axis)", borderWidth: onPath ? 3 : 1 }}>
           ${m ? `E${i} · ${m.template.slice(0, 38)}` : i}</div>` },

@@ -65,23 +65,24 @@ def map_alerts(alerts: pd.DataFrame, gt: pd.DataFrame, sessions: pd.DataFrame, g
     faults = faults_only(gt)
     if a.empty or faults.empty:
         return a
-    touched = _touched(sessions)
-    fid, inwin = [], []
-    for r in a.itertuples():
-        hit, win = None, False
-        tid = r.trace_id if isinstance(r.trace_id, str) and r.trace_id != "-" else None
-        # most recently started fault first, so overlapping grace windows credit the newer fault
-        for f in faults.sort_values("start_ts", ascending=False).itertuples():
-            if f.start_ts <= r.ts <= f.end_ts + grace:
-                win = True
-                tgt = f.target_service
-                concerns = (r.service == tgt) or (tid is not None and tgt in touched.get(tid, set())) \
-                    or (tid is None and r.detector == "B2_error_rate")
-                if concerns:
-                    hit = f.fault_id
-                    break
-        fid.append(hit)
-        inwin.append(win)
+    tid = a["trace_id"].where(a["trace_id"].map(lambda t: isinstance(t, str) and t != "-"))
+    no_trace = tid.isna().to_numpy()
+    svc_text = (sessions["services"].fillna("") + "," + sessions["called"].fillna("")).str.split(",")
+    ts = a["ts"].to_numpy()
+    fid = np.full(len(a), None, dtype=object)
+    inwin = np.zeros(len(a), dtype=bool)
+    # most recently started fault first, so overlapping grace windows credit the newer fault
+    for f in faults.sort_values("start_ts", ascending=False).itertuples():
+        win = (ts >= f.start_ts) & (ts <= f.end_ts + grace)
+        if not win.any():
+            continue
+        inwin |= win
+        tgt = f.target_service
+        touching = set(sessions.loc[svc_text.map(lambda s: tgt in s), "trace_id"])
+        concerns = (a["service"].to_numpy() == tgt) | tid.isin(touching).to_numpy() | \
+            (no_trace & (a["detector"].to_numpy() == "B2_error_rate"))
+        hit = win & concerns & pd.isna(fid)
+        fid[hit] = f.fault_id
     a["fault_id"] = fid
     a["in_fault_window"] = inwin
     return a
@@ -195,4 +196,5 @@ def scoreboard(con, detectors) -> dict:
             "mttd": float(np.nanmedian(dd["ttd"])) if len(dd) and dd["detected"].any() else None,
             "fa_per_h": float(fa_row["fa_per_h"]) if fa_row is not None and not np.isnan(fa_row["fa_per_h"]) else None,
         }
-    return {"detectors": out, "faults": det.to_dict("records") if len(det) else []}
+    faults = det.astype(object).where(det.notna(), None).to_dict("records") if len(det) else []
+    return {"detectors": out, "faults": faults}

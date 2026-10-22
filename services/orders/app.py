@@ -26,7 +26,13 @@ log = get_logger()
 app = FastAPI()
 fault = {"mode": os.environ.get("FAULT_MODE", "none")}
 install(app, fault)
-client = httpx.AsyncClient(timeout=CALL_TIMEOUT)
+
+
+async def call(url: str, body: dict) -> httpx.Response:
+    """A fresh client per call: a shared pool can be exhausted by slow calls during a fault
+    (F1) and never recover, which would silently cut orders off from every downstream."""
+    async with httpx.AsyncClient(timeout=CALL_TIMEOUT) as c:
+        return await c.post(url, json=body, headers=trace_headers())
 order_ids = itertools.count(random.randint(10_000, 50_000))
 
 
@@ -39,8 +45,7 @@ class OrderIn(BaseModel):
 async def release(oid: int, item: str, qty: int):
     log.info(f"Calling inventory to release stock for order {oid}")
     try:
-        await client.post(f"{INVENTORY_URL}/release", json={"order": oid, "item": item, "qty": qty},
-                          headers=trace_headers())
+        await call(f"{INVENTORY_URL}/release", {"order": oid, "item": item, "qty": qty})
     except httpx.HTTPError:
         log.error(f"Stock release failed for order {oid}")
 
@@ -57,8 +62,7 @@ async def create_order(o: OrderIn):
         log.info(f"Calling inventory to reserve {o.qty} x {o.item} for order {oid}")
         t0 = time.perf_counter()
         try:
-            r = await client.post(f"{INVENTORY_URL}/reserve",
-                                  json={"order": oid, "item": o.item, "qty": o.qty}, headers=trace_headers())
+            r = await call(f"{INVENTORY_URL}/reserve", {"order": oid, "item": o.item, "qty": o.qty})
         except httpx.TimeoutException:
             log.error(f"Inventory call timed out after {int((time.perf_counter() - t0) * 1000)} ms for order {oid}")
             return JSONResponse(status_code=504, content={"order": oid, "error": "inventory timeout"})
@@ -81,8 +85,7 @@ async def create_order(o: OrderIn):
         log.info(f"Calling payment to charge order {oid} amount {amount:.2f}")
         t0 = time.perf_counter()
         try:
-            r = await client.post(f"{PAYMENT_URL}/charge", json={"order": oid, "amount": amount},
-                                  headers=trace_headers())
+            r = await call(f"{PAYMENT_URL}/charge", {"order": oid, "amount": amount})
         except httpx.TimeoutException:
             log.error(f"Payment call timed out after {int((time.perf_counter() - t0) * 1000)} ms for order {oid}")
             continue

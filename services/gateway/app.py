@@ -16,7 +16,6 @@ log = get_logger()
 app = FastAPI()
 fault = {"mode": os.environ.get("FAULT_MODE", "none")}
 install(app, fault)
-client = httpx.AsyncClient(timeout=8.0)
 
 
 class Checkout(BaseModel):
@@ -40,7 +39,8 @@ async def checkout(c: Checkout):
     log.info(f"Auth ok for user {c.user}")
     log.info("Forwarding order to orders service")
     try:
-        r = await client.post(f"{ORDERS_URL}/orders", json=c.model_dump(), headers=trace_headers())
+        async with httpx.AsyncClient(timeout=8.0) as client:  # no shared pool to exhaust
+            r = await client.post(f"{ORDERS_URL}/orders", json=c.model_dump(), headers=trace_headers())
     except httpx.HTTPError as e:
         log.error(f"Orders service call failed: {type(e).__name__}")
         return respond(502, {"error": "orders unavailable"}, t0)

@@ -135,7 +135,8 @@ def main():
     architecture_figure()
     T = build()
     r = res()
-    facts = json.loads((REPORTS / "facts.json").read_text()) if (REPORTS / "facts.json").exists() else {}
+    from logpulse.eval.facts import build as build_facts
+    facts = build_facts()
 
     B.append({"type": "title", "text": "LogPulse: Online Anomaly Detection in Microservice Logs with Drain and LSTM",
               "lines": ["Log-Based Anomaly Detection for Microservice Systems Using Template Mining and Sequence Learning",

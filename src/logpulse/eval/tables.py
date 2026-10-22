@@ -281,6 +281,19 @@ def supplementary(r):
         d["h"] = d["notes"].str.extract(r"h=(\d+)")[0]
         d["g"] = d["notes"].str.extract(r"g=(\d+)")[0]
         out["E5 — DeepLog window h (F1, g tuned on val)"] = d[["dataset", "h", "g", "precision", "recall", "f1"]].round(3)
+    d = r[(r["exp_id"] == "E5b") & r["f1"].notna()].copy()
+    if len(d):
+        van = r[(r["exp_id"] == "E11") & (r["dataset"] == "hdfs") & (r["seed"] == 0) & r["f1"].notna()]
+        rows = []
+        for rule in ("topg", "topp", "surprise"):
+            v = van[van["model"] == f"DeepLog/{rule}"]
+            e = d[d["model"] == f"DeepLog+EOS/{rule}"]
+            if len(e):
+                rows.append({"Rule": rule, "Vanilla P / R / F1": (f"{v['precision'].iloc[0]:.3f} / {v['recall'].iloc[0]:.3f} / "
+                                                                  f"{v['f1'].iloc[0]:.3f}") if len(v) else "—",
+                             "+ end-of-session token P / R / F1": f"{e['precision'].iloc[0]:.3f} / {e['recall'].iloc[0]:.3f} / "
+                                                                    f"{e['f1'].iloc[0]:.3f}"})
+        out["E5b — HDFS: end-of-session token (seed 0)"] = pd.DataFrame(rows)
     d = r[(r["exp_id"] == "E7") & r["f1"].notna()].copy()
     if len(d):
         d["features"] = d["notes"].str.extract(r"features=([\w+]+)")[0]

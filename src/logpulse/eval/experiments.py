@@ -323,6 +323,30 @@ def e5(cfg):
     return rows
 
 
+# ------------------------------------------------------------------ E5b end-of-session token (HDFS)
+
+def e5b(cfg):
+    """Diagnostic follow-up: most HDFS anomalies DeepLog misses are truncated sessions (strict
+    prefixes of normal ones), which next-event prediction cannot see. Appending an
+    end-of-session token (id = V) makes 'the session ended here' a predicted event too."""
+    rows = []
+    ss = load("hdfs", "honest")
+    V = vocab_size("hdfs", "honest")
+    split = chronological(ss.time_key)
+    _, va, te = split
+    eos = SessionSet([np.append(s, V) for s in ss.seqs], ss.labels, ss.time_key, meta=ss.meta)
+    for seed in cfg["seeds_deeplog"][:1]:
+        model, log = deeplog_fit(eos, split, V + 1, cfg["h"], seed, "hdfs_honest_chrono_eos")
+        st_va, st_te = deeplog_eval(model, eos, split, cfg["h"])
+        res, _ = eval_rules(st_va, eos.labels[va], st_te, eos.labels[te])
+        for rule, m in res.items():
+            rows.append(_row("hdfs", "chrono", f"DeepLog+EOS/{rule}", seed,
+                             {**m, "pr_auc": pr_auc(eos.labels[te], st_te.seq_score()), "train_time_s": log.seconds},
+                             f"param={m['param']};end-of-session token"))
+    write_results("E5b", rows)
+    return rows
+
+
 # ------------------------------------------------------------------ E7 feature ablation
 
 def e7(cfg):
@@ -390,7 +414,7 @@ def bgl_matcher_inputs():
     """Known templates with (component, level class) from the training period, and the
     templates of the novel (test-only) events."""
     lines = _bgl_lines()
-    t = pd.read_csv(PROCESSED / "bgl" / "templates_honest.csv").set_index("EventId")["EventTemplate"]
+    t = pd.read_csv(PROCESSED / "bgl" / "templates_honest.csv").set_index("EventId")["EventTemplate"].fillna("")
     train = lines[lines["eid_honest"] < NOVEL_BASE]
     pairs = train.groupby(["eid_honest", "component", "level"], observed=True).size().reset_index()
     known = sorted({(int(r.eid_honest), t[int(r.eid_honest)], str(r.component), level_class(r.level))

@@ -212,7 +212,8 @@ with tab_inv:
     al = get("/api/alerts", run=RUN, limit=200) or []
     det = st.selectbox("Detector", list(DETECTOR_LABEL), index=list(DETECTOR_LABEL).index("deeplog_full"),
                        format_func=lambda d: DETECTOR_LABEL[d])
-    opts = [a for a in al if a["detector"] == det and a.get("trace_id")]
+    opts = sorted([a for a in al if a["detector"] == det and a.get("trace_id")],
+                  key=lambda a: {"TP": 0, "?": 1, "FP": 2}[a["verdict"]])  # true positives first
     pick = st.selectbox("Alert", opts, format_func=lambda a: f"{a['verdict']} · {a['trace_id']} · {a['service']} · "
                                                                 f"{str(a['observed_template'])[:50]}") if opts else None
     tid = st.text_input("…or a trace id", value=pick["trace_id"] if pick else "")
