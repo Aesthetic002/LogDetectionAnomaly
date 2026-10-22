@@ -10,7 +10,11 @@ On top of vanilla DeepLog it adds three improvements, each measured against the 
 a **semantic template matcher** for reworded logs after a deploy, an **adaptive top-p** decision rule, and
 **step-wise online scoring**.
 
-Design notes (the spec this repo implements) are in [docs/](docs/00%20-%20Project%20Hub.md).
+Design notes (the spec this repo implements) are in [docs/](docs/00%20-%20Project%20Hub.md). Start with:
+
+- [docs/17 — How to Run](docs/17%20-%20How%20to%20Run.md): setup, the 10-minute demo (`python scripts/demo.py`), troubleshooting
+- [docs/16 — Fault Catalogue Explained](docs/16%20-%20Fault%20Catalogue%20Explained.md): what F1–F7 are and who catches each
+- [docs/18 — What Does What](docs/18%20-%20What%20Does%20What.md): containers, data flow, every file
 
 <!-- RESULTS -->
 

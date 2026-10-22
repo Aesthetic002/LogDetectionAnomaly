@@ -114,6 +114,9 @@ Numbers get filled only from measured runs — see [[14 - Metrics and Baselines#
 - [[13 - Demo Visualization and Traceability]] — dashboard panels, alert drill-down, traceability chain
 - [[14 - Metrics and Baselines]] — conventional baselines, headline metrics, measurement protocol
 - [[15 - Our Improvements]] — semantic template matcher, adaptive top-p, step-wise scoring
+- [[16 - Fault Catalogue Explained]] — F1–F7: what breaks, how it is injected, what the logs show, who catches it
+- [[17 - How to Run]] — step-by-step commands: setup, 10-minute demo, dashboard, faults, benchmarks, training, troubleshooting
+- [[18 - What Does What]] — containers, the life of one log line, the nine detectors, every file in the repo
 
 ## Decisions still open
 
