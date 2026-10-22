@@ -15,6 +15,7 @@ Design notes (the spec this repo implements) are in [docs/](docs/00%20-%20Projec
 - [docs/17 — How to Run](docs/17%20-%20How%20to%20Run.md): setup, the 10-minute demo (`python scripts/demo.py`), troubleshooting
 - [docs/16 — Fault Catalogue Explained](docs/16%20-%20Fault%20Catalogue%20Explained.md): what F1–F7 are and who catches each
 - [docs/18 — What Does What](docs/18%20-%20What%20Does%20What.md): containers, data flow, every file
+- [docs/19 — Demo Run Output Explained](docs/19%20-%20Demo%20Run%20Output%20Explained.md): what the demo's terminal output means
 
 <!-- RESULTS -->
 
