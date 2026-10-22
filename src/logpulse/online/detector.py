@@ -35,7 +35,7 @@ from logpulse.models.deeplog import DeepLog, step_stats
 from logpulse.models.template_matcher import TemplateMatcher
 from logpulse.online.parser import OnlineParser
 from logpulse.online.sessionizer import TERMINAL_RE, Sessionizer, Trace
-from logpulse.parsing.drain_parser import level_class
+from logpulse.parsing.drain_parser import is_severe, level_class
 from logpulse.paths import PAD, UNSEEN
 
 DEFAULTS = {
@@ -208,7 +208,7 @@ class Pipeline:
         t = self.templates[ev["eid"]]
         if t.get("matched_to") is not None:
             return int(t["matched_to"])
-        return UNSEEN if level_class(ev["level"]) == "error" else None  # None = neutral, skipped
+        return UNSEEN if is_severe(ev["level"]) else None  # None = neutral, skipped
 
     # ------------------------------------------------------------ step-wise scoring (ours)
     def _score_steps(self, released, now):

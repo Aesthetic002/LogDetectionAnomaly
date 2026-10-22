@@ -1,6 +1,10 @@
 """Metrics + the single results file every reported number traces back to (note 07)."""
 from __future__ import annotations
 
+import os
+import time
+from contextlib import contextmanager
+
 import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score, precision_recall_fscore_support
@@ -34,9 +38,34 @@ def best_threshold(y_true, score) -> tuple[float, float]:
     return best
 
 
+@contextmanager
+def _locked(path, timeout=120):
+    """Cross-process lock (several scripts append to results.csv concurrently)."""
+    lock = str(path) + ".lock"
+    t0 = time.time()
+    while True:
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            if time.time() - t0 > timeout:
+                os.remove(lock)  # stale lock from a crashed writer
+            time.sleep(0.2)
+    try:
+        yield
+    finally:
+        os.close(fd)
+        os.remove(lock)
+
+
 def write_results(exp_id: str, rows: list[dict], tag: str | None = None) -> pd.DataFrame:
     """Replace this experiment's rows (optionally only those with notes containing tag)."""
     RESULTS_CSV.parent.mkdir(parents=True, exist_ok=True)
+    with _locked(RESULTS_CSV):
+        return _write_results(exp_id, rows, tag)
+
+
+def _write_results(exp_id, rows, tag):
     old = pd.read_csv(RESULTS_CSV) if RESULTS_CSV.exists() else pd.DataFrame(columns=COLUMNS)
     drop = old["exp_id"] == exp_id
     if tag is not None:

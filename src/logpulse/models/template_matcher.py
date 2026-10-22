@@ -57,7 +57,7 @@ def apply_policy(seq, is_error, policy: str, vocab_size: int, mapping: dict | No
     """Transform one event sequence according to an unseen-template policy.
 
     seq       event ids; ids >= vocab_size are unseen (novel) templates
-    is_error  per-event severity flag (1 = WARN/ERROR class)
+    is_error  per-event severity (nonzero = WARN/ERROR class)
     mapping   for P4: {(novel_id, is_error_flag, *ctx) -> known id or None} via a callable
     Returns the new sequence; UNSEEN (1) marks an anomalous unseen step, dropped events
     are neutral.

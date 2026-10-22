@@ -70,7 +70,8 @@ def map_alerts(alerts: pd.DataFrame, gt: pd.DataFrame, sessions: pd.DataFrame, g
     for r in a.itertuples():
         hit, win = None, False
         tid = r.trace_id if isinstance(r.trace_id, str) and r.trace_id != "-" else None
-        for f in faults.itertuples():
+        # most recently started fault first, so overlapping grace windows credit the newer fault
+        for f in faults.sort_values("start_ts", ascending=False).itertuples():
             if f.start_ts <= r.ts <= f.end_ts + grace:
                 win = True
                 tgt = f.target_service

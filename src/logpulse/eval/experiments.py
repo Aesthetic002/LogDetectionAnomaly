@@ -20,7 +20,9 @@ from logpulse.features.windows import fixed_windows, load_bgl_lines, time_window
 from logpulse.models.baselines import SUPERVISED, IsoForestDetector, PCADetector, make_supervised
 from logpulse.models.deeplog import DeepLog, step_stats, train
 from logpulse.models.template_matcher import POLICIES, TemplateMatcher, apply_policy
-from logpulse.parsing.drain_parser import level_class, parse_2k
+from logpulse.parsing.drain_parser import LEVEL_CODE, level_class, parse_2k
+
+LEVEL_NAME = {v: k for k, v in LEVEL_CODE.items()}
 from logpulse.paths import ARTIFACTS, NOVEL_BASE, PROCESSED
 
 torch.set_num_threads(2)  # fastest for this small LSTM on CPU (benchmarked)
@@ -417,7 +419,7 @@ def e10_bgl(cfg):
                 def f(i):
                     key = (int(seq[i]), int(comp[i]), int(lvl[i]))
                     if key not in cache:
-                        cache[key] = matcher.match(ttext[key[0]], comps[key[1]], "error" if key[2] else "info")
+                        cache[key] = matcher.match(ttext[key[0]], comps[key[1]], LEVEL_NAME[key[2]])
                     return cache[key][0]
                 return f
 
@@ -435,7 +437,7 @@ def e10_bgl(cfg):
             if tau == cfg["tau"]:
                 for (eid, ci, lv), (mapped, score) in cache.items():
                     mapping_rows.append({"novel_event": eid, "novel_template": ttext[eid], "component": comps[ci],
-                                         "level_class": "error" if lv else "info",
+                                         "level_class": LEVEL_NAME[lv],
                                          "mapped_to": mapped, "mapped_template": ttext.get(mapped, "") if mapped else "",
                                          "similarity": round(score, 3), "correct (hand-check)": ""})
     novel_share = np.mean([np.any(np.asarray(ss.seqs[i]) >= NOVEL_BASE) for i in te])

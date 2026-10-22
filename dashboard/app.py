@@ -94,7 +94,8 @@ def topology(svc):
     xs, ys, colors, text, hover = [], [], [], [], []
     for nid, n in nodes.items():
         x, y = POS[nid]
-        xs.append(x), ys.append(y)
+        xs.append(x)
+        ys.append(y)
         colors.append(STATUS[n["color"]])
         text.append(f"<b>{nid}</b><br>{n['lines_per_s']} lines/s" + ("" if n["infra"] else f"<br>{n['anomalous_per_min']} anom/min"))
         hover.append(f"{nid}: {STATUS_LABEL[n['color']]} · health {n['health']}")

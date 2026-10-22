@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 
 from logpulse.features.sessionize import SessionSet
+from logpulse.parsing.drain_parser import LEVEL_CODE, level_class
 from logpulse.paths import PROCESSED
 
 
@@ -22,8 +23,8 @@ def fixed_windows(lines: pd.DataFrame, size: int = 20, mode: str = "honest") -> 
     lab = lines["is_anom"].to_numpy()[:n].reshape(-1, size).max(axis=1).astype(np.int8)
     ts = lines["ts"].to_numpy()[:n].reshape(-1, size)[:, 0]
     comp = lines["component"].cat.codes.to_numpy()[:n].reshape(-1, size)
-    lvl = lines["level"].astype(str).str.upper().isin(
-        ["WARN", "WARNING", "ERROR", "FATAL", "SEVERE", "FAILURE"]).to_numpy()[:n].reshape(-1, size)
+    codes = {lv: LEVEL_CODE[level_class(lv)] for lv in lines["level"].cat.categories}
+    lvl = lines["level"].map(codes).astype(np.int8).to_numpy()[:n].reshape(-1, size)  # 0 info, 1 warn, 2 error
     return SessionSet(
         seqs=list(eids), labels=lab, time_key=np.arange(len(lab)),  # line order is the clock
         components=list(comp), levels=list(lvl.astype(np.int8)),

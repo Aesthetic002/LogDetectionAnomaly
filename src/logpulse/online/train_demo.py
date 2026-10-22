@@ -37,6 +37,8 @@ def main():
     ap.add_argument("--h", type=int, default=10)
     ap.add_argument("--sim-th", type=float, default=None, help="default: best GA on this run")
     ap.add_argument("--out", default=str(ARTIFACTS / "demo"))
+    ap.add_argument("--exclude-error-traces", action="store_true",
+                    help="drop traces with ERROR lines (known incidents, e.g. host stalls) from the healthy training set")
     args = ap.parse_args()
     torch.set_num_threads(2)
     out = Path(args.out)
@@ -89,7 +91,9 @@ def main():
     # 3. traces -> DeepLog
     raw = raw.assign(eid=eids)
     ev = raw[raw["trace_id"] != "-"].sort_values(["trace_id", "ts", "id"], kind="stable")
-    traces = [(g["ts"].iloc[0], g["eid"].to_numpy()) for _, g in ev.groupby("trace_id", sort=False)]
+    traces = [(g["ts"].iloc[0], g["eid"].to_numpy()) for _, g in ev.groupby("trace_id", sort=False)
+              if not (args.exclude_error_traces and (g["level"] == "ERROR").any())]
+    print(f"{len(traces):,} traces used ({ev['trace_id'].nunique() - len(traces)} excluded as known incidents)")
     traces.sort(key=lambda t: t[0])
     seqs = [t[1] for t in traces]
     n_tr = int(0.9 * len(seqs))
@@ -122,7 +126,7 @@ def main():
     cfg.update({"h": args.h, "model_version": mv, "trained_on": args.run, "train_traces": n_tr})
     cfg_path.write_text(json.dumps(cfg, indent=2))
     write_results("E8", [{"dataset": "demo", "split": "-", "model": "DeepLog", "seed": 0, "metric": "train_traces",
-                          "value": n_tr, "train_time_s": log.seconds, "notes": f"trained_on={args.run};h={args.h}"}],
+                          "value": n_tr, "train_time_s": log.seconds, "notes": f"trained_on={args.run};h={args.h};exclude_error_traces={args.exclude_error_traces}"}],
                   tag="trained_on=")
     print("artifacts ->", out)
 

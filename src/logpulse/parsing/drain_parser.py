@@ -34,12 +34,21 @@ from logpulse.paths import DRAIN_INI, NOVEL_BASE, PROCESSED, RAW
 
 HDFS_RE = re.compile(r"^(\d{6}) (\d{6}) (\d+) (\w+) ([\w.$]+): (.*)$")
 BLK_RE = re.compile(r"blk_-?\d+")
-ERRORISH = {"WARN", "WARNING", "ERROR", "FATAL", "SEVERE", "FAILURE", "CRITICAL"}
+WARNISH = {"WARN", "WARNING"}
+ERRORISH = {"ERROR", "FATAL", "SEVERE", "FAILURE", "CRITICAL"}
+LEVEL_CODE = {"info": 0, "warn": 1, "error": 2}
 
 
 def level_class(level: str) -> str:
-    """Two severity classes used by the template matcher and the severity policy."""
-    return "error" if str(level).upper() in ERRORISH else "info"
+    """Severity class: 'info' | 'warn' | 'error'. The matcher only maps within one class
+    (an unseen ERROR can never be absorbed by a known WARN or INFO event); the severity
+    fallback treats warn and error alike as anomalous."""
+    lv = str(level).upper()
+    return "error" if lv in ERRORISH else "warn" if lv in WARNISH else "info"
+
+
+def is_severe(level: str) -> bool:
+    return level_class(level) != "info"
 
 
 def make_miner(cfg_path=DRAIN_INI, sim_th=None, depth=None, masking=True, state_path=None):

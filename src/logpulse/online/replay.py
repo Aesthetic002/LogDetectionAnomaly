@@ -16,7 +16,7 @@ import pandas as pd
 from logpulse import store
 from logpulse.models.template_matcher import TemplateMatcher
 from logpulse.online.parser import OnlineParser
-from logpulse.parsing.drain_parser import level_class
+from logpulse.parsing.drain_parser import is_severe, level_class
 from logpulse.paths import RUNS, UNSEEN
 
 
@@ -67,7 +67,7 @@ def p4_token(eid, level, templates, tau):
         return eid
     if tau is not None and t.get("best") is not None and t["best_score"] >= tau:
         return int(t["best"])
-    return UNSEEN if level_class(level) == "error" else None
+    return UNSEEN if is_severe(level) else None
 
 
 def build_traces(raw: pd.DataFrame, templates: dict, tau: float | None) -> pd.DataFrame:

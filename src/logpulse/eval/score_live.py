@@ -22,7 +22,7 @@ from logpulse.eval.plots import AXIS, INK2, SEQ, SERIES, fig, plt, save
 from logpulse.models.deeplog import DeepLog, step_stats
 from logpulse.online.demo_templates import V1_EQUIVALENT, statement_of
 from logpulse.online.replay import as_sessions, build_traces, load_raw, replay
-from logpulse.parsing.drain_parser import level_class
+from logpulse.parsing.drain_parser import is_severe
 from logpulse.paths import ARTIFACTS, FIGURES, RUNS, UNSEEN
 
 DETS = ["B1_keyword", "B2_error_rate", "B3_health", "rf", "deeplog_vanilla", "deeplog_matcher", "deeplog_topp",
@@ -107,7 +107,7 @@ def policy_tokens(raw, templates, policy, tau):
         for e, lv in zip(g["eid"], g["level"]):
             if templates[e]["known"]:
                 out.append(e)
-            elif policy == "P1" or (policy == "P3" and level_class(lv) == "error"):
+            elif policy == "P1" or (policy == "P3" and is_severe(lv)):
                 out.append(UNSEEN)
             # P2 drops every unseen event; P3 drops unseen INFO events
         seqs.append(np.array(out, dtype=np.int64))
@@ -124,9 +124,9 @@ def first_bad_ts(raw, traces, st, rule, param, policy, templates, tau):
     for tid, g in ev.groupby("trace_id", sort=False):
         keep = []
         for t, e, lv in zip(g["ts"], g["eid"], g["level"]):
-            tok_kept = templates[e]["known"] or policy == "P1" or (policy == "P3" and level_class(lv) == "error") or \
+            tok_kept = templates[e]["known"] or policy == "P1" or (policy == "P3" and is_severe(lv)) or \
                 (policy == "P4" and ((tau is not None and templates[e].get("best") is not None and
-                                      templates[e]["best_score"] >= tau) or level_class(lv) == "error"))
+                                      templates[e]["best_score"] >= tau) or is_severe(lv)))
             if tok_kept:
                 keep.append(t)
         ts_by_trace[tid] = keep

@@ -65,7 +65,9 @@ services:
       - LOGPULSE_LIVE_RUNS=/runs
       - CHAOS_URL=http://chaos:9100
       - SERVICE_URLS=gateway=http://gateway:8000,orders=http://orders:8000,inventory=http://inventory:8000,payment=http://payment:8000
-    volumes: ["../data:/app/data", "../artifacts:/app/artifacts", "../configs:/app/configs:ro", "runs:/runs"]
+    # src/ and the React page are mounted so code changes need only `docker compose restart detector`
+    volumes: ["../data:/app/data", "../artifacts:/app/artifacts", "../configs:/app/configs:ro", "runs:/runs",
+              "../src:/app/src:ro", "../dashboard/react:/app/dashboard/react:ro"]
   chaos:
     build: { context: .., dockerfile: deploy/chaos.Dockerfile }
     image: logpulse-chaos:v1
@@ -77,7 +79,7 @@ services:
     image: logpulse-dashboard:v1
     ports: ["8501:8501"]
     environment: [API_URL=http://detector:9000, CHAOS_URL=http://chaos:9100, LOGPULSE_ROOT=/app]
-    volumes: ["../reports:/app/reports:ro", "../data:/app/data:ro"]
+    volumes: ["../reports:/app/reports:ro", "../dashboard:/app/dashboard:ro"]
 
 volumes:
   runs:
